@@ -1,0 +1,24 @@
+{
+	"manifest_version": 2,
+	"name": "Metis Jupyter Controller",
+	"short_name": "Metis Jupyter Controller",
+	"description": "Control local Jupyter Notebook servers from Chrome",
+	"author": "Dan Lester",
+	"version": "1.0.0",
+	"minimum_chrome_version": "55",
+	"background": {
+		"scripts": ["metis.js"],
+		"persistent": true
+	},
+	"browser_action": {
+		"default_icon": "icon/metis.png"
+	},
+	"icons": {
+		"128": "icon/metis.png"
+	},
+
+	"permissions": [
+		"tabs",
+		"nativeMessaging"
+	]
+}

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Builds a release as a .zip file for upload to the Chrome Web Store
+
+out="metis.zip"
+rm "$out"
+zip "$out" LICENSE manifest.json *.js *.html icon/*.png
