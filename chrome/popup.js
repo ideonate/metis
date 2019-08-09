@@ -2,6 +2,10 @@
 
 let port = 0;
 
+let hostname = '';
+
+let server_info = null;
+
 let status = 0; /* 0 = loading, 1 = stopped, 2 = launching server, 3 = running, 4 = stopping */
 
 let statustext = ['Loading', 'Stopped', 'Launching', 'Live', 'Stopping'];
@@ -17,18 +21,19 @@ function updateUiState() {
 }
 
 function connect() {
-    sendObject({cmd: 'start'});
+    sendObject({cmd: status < 2 ? 'start' : 'stop'});
 }
 
 function messageResponder(response) {
     console.log(response);
     uid = response.uid;
     port = response.port;
+    hostname = response.hostname;
     status = response.status;
 
     document.getElementById('status').innerHTML = statustext[status];
 
-    document.getElementById('info').innerHTML = '<p>UID: '+uid+'</p><p>Port: '+port+'</p><p>Status: '+status+'</p>';
+    document.getElementById('info').innerHTML = '<p>UID: '+uid+'</p><p>Hostname: '+hostname+'</p><p>Port: '+port+'</p><p>Status: '+status+'</p>';
 
     let locallogs = document.getElementById('locallogs');
     locallogs.innerHTML = '';
@@ -50,7 +55,8 @@ function sendObject(o) {
 
     o.uid = uid;
     o.status = status;
-    o.port = port;
+    o.hostname = hostname;
+    o.post = port;
 
     console.log(o);
     chrome.runtime.sendMessage(o, messageResponder);
@@ -75,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log(tabs);
         }
         else {
-            sendObject({tabid: tabs[0].id});
+            sendObject({tabid: tabs[0].id, taburl: tabs[0].url});
 
             updateUiState();
         }

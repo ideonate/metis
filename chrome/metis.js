@@ -2,13 +2,15 @@
 
 let tabmap = new Map();
 
+let jservermap = new Map();
+
 let servermap = new Map();
 
 let uidcounter = 1;
 
 let globallogs = [];
 
-let port = null;
+let nativeport = null;
 
 function appendMessage(text) {
 	globallogs.push(text);
@@ -16,7 +18,7 @@ function appendMessage(text) {
 
 function sendNativeMessage(serverobj, msg) {
 	msg.uid = serverobj.uid;
-	port.postMessage(msg);
+	nativeport.postMessage(msg);
 	appendMessage("Sent message: <b>" + JSON.stringify(msg) + "</b>");
 
 	if (msg.cmd == 'start') {
@@ -28,7 +30,9 @@ function sendNativeMessage(serverobj, msg) {
 
 function sendForPopup(serverobj) {
 	chrome.runtime.sendMessage({uid: serverobj.uid,
+		hostname: serverobj.hostname,
 		port: serverobj.port,
+		server_info: serverobj.server_info,
 		status: serverobj.status,
 		locallogs: serverobj.locallogs,
 		globallogs: globallogs
@@ -36,30 +40,49 @@ function sendForPopup(serverobj) {
 }
 
 function onNativeMessage(msg) {
-	appendMessage("Received message: <b>" + JSON.stringify(msg) + "</b>");
-
 	if (msg.uid) {
 		let serverobj = servermap.get(msg.uid);
+
+		serverobj.locallogs.push('Received Msg: ' + JSON.stringify(msg))
+
 		if (msg.status) {
 			serverobj.status = msg.status;
 		}
-		if (msg.port) {
-			serverobj.port = msg.port;
+		if (msg.server_info) {
+			/* This is the first time we know server is started */
+			serverobj.server_info = msg.server_info;
+			serverobj.hostname = msg.server_info.hostname;
+			serverobj.port = msg.server_info.port;
+
+			jservermap.set(serverobj.hostname+':'+serverobj.port, msg.uid);
+
+			if (serverobj.requesting_tabid) {
+				let url = msg.server_info.url;
+				if (msg.server_info.token) {
+					url += '?token='+msg.server_info.token;
+				}
+				chrome.tabs.update(serverobj.requesting_tabid, {url: url})
+			}
 		}
 		sendForPopup(serverobj);
 	}
+	else {
+		appendMessage("Received global message: <b>" + JSON.stringify(msg) + "</b>");
+	}
 }
+
 function onDisconnected() {
 	appendMessage("Disconnected: " + chrome.runtime.lastError.message);
-	port = null;
+	nativeport = null;
 }
+
 function connect() {
-	if (port == null) {
+	if (nativeport == null) {
 		var hostName = "com.ideonate.metis";
 		appendMessage("Connecting to native messaging host <b>" + hostName + "</b>")
-		port = chrome.runtime.connectNative(hostName);
-		port.onMessage.addListener(onNativeMessage);
-		port.onDisconnect.addListener(onDisconnected);
+		nativeport = chrome.runtime.connectNative(hostName);
+		nativeport.onMessage.addListener(onNativeMessage);
+		nativeport.onDisconnect.addListener(onDisconnected);
 	}
 }
 
@@ -83,13 +106,21 @@ async function start() {
 				"from a content script:" + sender.tab.url :
 				"from the extension");
 			if (!sender.tab) {
-
+				let tabid = null;
 				let serverobj = {};
 				let uid = request.uid;
 
 				if (request.tabid) {
+					tabid = request.tabid;
 					if (tabmap.has(request.tabid)) {
 						uid = tabmap.get(request.tabid);
+					}
+					else if (request.taburl) {
+						let taburl = new URL(request.taburl);
+						let hostnameport = taburl.hostname + ':' + taburl.port;
+						if (jservermap.has(hostnameport)) {
+							uid = jservermap.get(hostnameport);
+						}
 					}
 				}
 
@@ -98,9 +129,12 @@ async function start() {
 				if (!uid) {
 					uid = uidcounter++;
 					serverobj.uid = uid;
+					serverobj.hostname = '';
 					serverobj.port = 0;
+					serverobj.server_info = {};
 					serverobj.locallogs = ['Starting with uid: '+uid];
 					serverobj.status = 1; // Stopped
+					serverobj.requesting_tabid = tabid;
 					servermap.set(uid, serverobj);
 
 					if (request.tabid) {
@@ -112,7 +146,9 @@ async function start() {
 				}
 
 				sendResponse({uid: uid,
+					hostname: serverobj.hostname,
 					port: serverobj.port,
+					server_info: serverobj.server_info,
 					status: serverobj.status,
 					locallogs: serverobj.locallogs,
 					globallogs: globallogs
@@ -121,8 +157,8 @@ async function start() {
 				// Start or stop server?
 				if (request.cmd) {
 					serverobj.status = (request.status + 1) % 5;
-					if (request.status == 1 || request.status == 3) {
-						sendNativeMessage(serverobj, {cmd:'start'});
+					if ((request.status == 1 && request.cmd == 'start') || (request.status == 3 && request.cmd == 'stop')) {
+						sendNativeMessage(serverobj, {cmd: request.cmd});
 					}
 				}
 			}
@@ -130,7 +166,6 @@ async function start() {
 		});
 
 	chrome.browserAction.setPopup({'popup':'main.html'}, popupCallback);
-	//chrome.browserAction.onClicked.addListener(popupCallback);
 }
 
 start();

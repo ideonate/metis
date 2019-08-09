@@ -58,23 +58,29 @@ def jpipe_run(req, fromjqueue, q):
     if q:
         q.put('Started jpipe in thread: pyversion '+sys.version)
 
-    # Pretend we've got a port back already
-    fromjqueue.put({'uid': uid, 'port': 8888, 'status': 3, 'msg': 'Got port'})
+    # Pretend we've got a nativeport back already
+
 
     while jpipe.poll() is None:
 
         try:
             #outs, errs = jpipe.communicate(None, timeout=1)
-            errs = jpipe.stderr.readline()
+            outs = jpipe.stdout.readline()
 
             if q:
                 q.put('Result')
-                #q.put('outs: ' + outs) #.decode('utf-8'))
-                q.put('errs: ' + errs) #.decode('utf-8'))
+                q.put('outs: ' + outs) #.decode('utf-8'))
+                #q.put('errs: ' + errs) #.decode('utf-8'))
+
+                d = json.loads(outs)
+
+                if 'server_info' in d:
+                    fromjqueue.put({'uid': uid, 'status': 3, 'server_info': d['server_info']})
 
         except Exception as e:
             if q:
                 q.put(str(e))
+            fromjqueue.put({'uid': uid, 'status': 4, 'msg': str(e)})
 
     jpipe = None
     if q:
