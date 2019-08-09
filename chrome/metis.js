@@ -36,8 +36,18 @@ function sendForPopup(serverobj) {
 }
 
 function onNativeMessage(msg) {
-	//let uid = msg.uid;
 	appendMessage("Received message: <b>" + JSON.stringify(msg) + "</b>");
+
+	if (msg.uid) {
+		let serverobj = servermap.get(msg.uid);
+		if (msg.status) {
+			serverobj.status = msg.status;
+		}
+		if (msg.port) {
+			serverobj.port = msg.port;
+		}
+		sendForPopup(serverobj);
+	}
 }
 function onDisconnected() {
 	appendMessage("Disconnected: " + chrome.runtime.lastError.message);

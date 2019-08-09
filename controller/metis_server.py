@@ -7,6 +7,7 @@ import struct
 import sys
 import threading
 import queue
+import json
 try:
     import tkinter
     from tkinter import messagebox
@@ -14,6 +15,10 @@ except ImportError:
     tkinter = None
 
 import subprocess
+
+uidtojqueues = {};
+
+fromjqueue = queue.Queue()
 
 # On Windows, the default I/O mode is O_TEXT. Set this to O_BINARY
 # to avoid unwanted modifications of the input/output streams.
@@ -32,25 +37,33 @@ def send_message(message):
 
 jpipe = None
 
-def jpipe_run(q):
+
+def jpipe_run(req, fromjqueue, q):
+    # 0 = loading, 1 = stopped, 2 = launching server, 3 = running, 4 = stopping
+    uid = req['uid']
+    status = 2
     if q:
-        q.put('Starting jpipe in thread')
+        q.put('Starting jpipe in thread for uid {}'.format(uid))
     try:
         jpipe = subprocess.Popen(['./run_jupyter.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, text=True, shell=True)
+
     except Exception as e:
         if q:
             q.put(str(e))
+        fromjqueue.put({'uid': uid, 'status': 1, 'msg': 'Failed jpipe: '+str(e)})
         sys.exit(0)
+
+    fromjqueue.put({'uid': uid, 'msg': 'Started jpipe'})
 
     if q:
         q.put('Started jpipe in thread: pyversion '+sys.version)
 
+    # Pretend we've got a port back already
+    fromjqueue.put({'uid': uid, 'port': 8888, 'status': 3, 'msg': 'Got port'})
+
     while jpipe.poll() is None:
 
         try:
-            if q:
-                q.put('Polled jpipe')
-
             #outs, errs = jpipe.communicate(None, timeout=1)
             errs = jpipe.stderr.readline()
 
@@ -66,9 +79,10 @@ def jpipe_run(q):
     jpipe = None
     if q:
         q.put('Finished jpipe')
+    fromjqueue.put({'uid': uid, 'status': 1, 'msg': 'STOPPED jpipe'})
 
-def start_jpipe(q):
-    thread = threading.Thread(target=jpipe_run, args=(q,))
+def start_jpipe(req, fromjqueue, q):
+    thread = threading.Thread(target=jpipe_run, args=(req, fromjqueue, q,))
     thread.daemon = True
     thread.start()
     #jpipe_run(q)
@@ -92,17 +106,31 @@ def read_thread_func(q):
             q.put(text)
         else:
             # In headless mode just send an echo message back.
-            send_message('{"echo": %s}' % text)
+            pass #send_message('{"echo": %s}' % text)
 
-        if text == '{"text":"start"}':
-            jtext = 'Starting pipe'
-            start_jpipe(q)
+        req = json.loads(text)
+
+        uid = req['uid'] # TODO check exists
+
+        if uid in uidtojqueues:
+            tojqueue = uidtojqueues['uid']
+            tojqueue.put(req)
         else:
-            jtext = 'NOT Starting pipe'
+            jtext = 'Starting pipe'
+            start_jpipe(req, fromjqueue, q)
+
+            if q:
+                q.put(jtext)
+
+# Thread to read aggregated messages from fromjqueue and send back to chrome
+def out_thread_func(fromjqueue, q):
+
+    while 1:
+        msg = fromjqueue.get() # Will wait
+        send_message(json.dumps(msg))
 
         if q:
-            q.put(jtext)
-
+            q.put('Replied with msg: '+json.dumps(msg))
 
 if tkinter:
     class NativeMessagingWindow(tkinter.Frame):
@@ -153,9 +181,15 @@ def Main():
     q = queue.Queue()
     main_window = NativeMessagingWindow(q)
     main_window.master.title('Native Messaging Example')
-    thread = threading.Thread(target=read_thread_func, args=(q,))
-    thread.daemon = True
-    thread.start()
+
+    inthread = threading.Thread(target=read_thread_func, args=(q,))
+    inthread.daemon = True
+    inthread.start()
+
+    outthread = threading.Thread(target=out_thread_func, args=(fromjqueue, q,))
+    outthread.daemon = True
+    outthread.start()
+
     main_window.mainloop()
     sys.exit(0)
 
