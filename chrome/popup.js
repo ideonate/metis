@@ -4,32 +4,16 @@ let port = 0;
 
 let status = 0; /* 0 = loading, 1 = stopped, 2 = launching server, 3 = running, 4 = stopping */
 
-let statustext = ['Loading', 'Dead', 'Launching', 'Live', 'Stopping'];
+let statustext = ['Loading', 'Stopped', 'Launching', 'Live', 'Stopping'];
+let buttondisabled = [true, false, true, false, true];
+let buttontext = ['Loading', 'Launch', 'Launching', 'Stop', 'Stopping'];
 
 let uid = '';
 
-
 function updateUiState() {
-    if (status == 0) {
-        document.getElementById('connect-button').disabled = true;
-        document.getElementById('connect-button').text = 'Loading...';
-        document.getElementById('connect-button').style.display = 'none';
-    }
-    else if (status == 1) {
-        document.getElementById('connect-button').disabled = false;
-        document.getElementById('connect-button').text = 'Run';
-        document.getElementById('connect-button').style.display = 'block';
-    } else if (status == 2) {
-        document.getElementById('connect-button').text = 'Launching...';
-        document.getElementById('connect-button').disabled = true;
-    } else if (status == 3) {
-        document.getElementById('connect-button').disabled = false;
-        document.getElementById('connect-button').text = 'Stop';
-    }
-    else if (status == 4) {
-        document.getElementById('connect-button').disabled = true;
-        document.getElementById('connect-button').text = 'Stopping...';
-    }
+    document.getElementById('connect-button').disabled = buttondisabled[status];
+    document.getElementById('connect-button').innerHTML = buttontext[status];
+    document.getElementById('connect-button').style.display = 'block';
 }
 
 function connect() {

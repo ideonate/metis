@@ -112,15 +112,15 @@ def read_thread_func(q):
 
         uid = req['uid'] # TODO check exists
 
-        if uid in uidtojqueues:
-            tojqueue = uidtojqueues['uid']
+        if uid in uidtojqueues: # thread-safe because we only read input in this thread
+            tojqueue = uidtojqueues[uid]
             tojqueue.put(req)
         else:
-            jtext = 'Starting pipe'
+            uidtojqueues[uid] = queue.Queue()
             start_jpipe(req, fromjqueue, q)
 
             if q:
-                q.put(jtext)
+                q.put('Starting pipe')
 
 # Thread to read aggregated messages from fromjqueue and send back to chrome
 def out_thread_func(fromjqueue, q):
