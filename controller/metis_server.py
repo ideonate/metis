@@ -8,11 +8,13 @@ import sys
 import threading
 import queue
 import json
-try:
-    import tkinter
-    from tkinter import messagebox
-except ImportError:
-    tkinter = None
+#try:
+#    import tkinter
+#    from tkinter import messagebox
+#except ImportError:
+#    tkinter = None
+
+tkinter = None
 
 import subprocess
 
@@ -70,15 +72,16 @@ def jpipe_run(req, fromjqueue, q):
                 q.put('outs: ' + outs) #.decode('utf-8'))
                 #q.put('errs: ' + errs) #.decode('utf-8'))
 
+            try:
                 d = json.loads(outs)
 
                 if 'server_info' in d:
                     fromjqueue.put({'uid': uid, 'status': 3, 'server_info': d['server_info']})
 
-        except json.JSONDecodeError as jde:
-            if q:
-                q.put(str(jde))
-            fromjqueue.put({'uid': uid, 'status': 4, 'msg': 'JSON decode error: '+str(jde)})
+            except json.JSONDecodeError as jde:
+                if q:
+                    q.put(str(jde))
+                fromjqueue.put({'uid': uid, 'status': 4, 'msg': 'JSON decode error: '+outs})
 
         except Exception as e:
             if q:
@@ -90,12 +93,36 @@ def jpipe_run(req, fromjqueue, q):
         q.put('Finished jpipe')
     fromjqueue.put({'uid': uid, 'status': 1, 'msg': 'STOPPED jpipe'})
 
+def jport_stop(req, fromjqueue, q):
+    try:
+        uid = req['uid']
+        port = req['server_info']['port']
+        virtualenv = req['virtualenv']
+        homedir = req['homedir']
+
+        if q:
+            q.put('Stopping jport for uid {} port {}'.format(uid, port))
+
+        fromjqueue.put({'uid': uid, 'msg': 'Stopping port'})
+        p = subprocess.run(['./stop_jupyter.sh', virtualenv, homedir, str(port)], text=True, shell=False, capture_output=True)
+        fromjqueue.put({'uid': uid, 'msg': p.stderr + p.stdout})
+
+    except Exception as e:
+        if q:
+            q.put(str(e))
+        fromjqueue.put({'uid': uid, 'status': 1, 'msg': 'Failed jport: '+str(e)})
+        sys.exit(0)
+
 
 def start_jpipe(req, fromjqueue, q):
     thread = threading.Thread(target=jpipe_run, args=(req, fromjqueue, q,))
     thread.daemon = True
     thread.start()
 
+def stop_jport(req, fromjqueue, q):
+    thread = threading.Thread(target=jport_stop, args=(req, fromjqueue, q,))
+    thread.daemon = True
+    thread.start()
 
 # Thread that reads messages from the webapp.
 def read_thread_func(q):
@@ -123,8 +150,14 @@ def read_thread_func(q):
         uid = req['uid'] # TODO check exists
 
         if uid in uidtojqueues: # thread-safe because we only read input in this thread
-            tojqueue = uidtojqueues[uid]
-            tojqueue.put(req)
+
+            if req['cmd'] == 'stop': # stop is initiated through another process
+                stop_jport(req, fromjqueue, q)
+
+            else: # Don't currently have any way to catch these messages anyway - only start!
+                tojqueue = uidtojqueues[uid]
+                tojqueue.put(req)
+
         else:
             uidtojqueues[uid] = queue.Queue()
             if req['cmd'] == 'start':
@@ -184,26 +217,32 @@ if tkinter:
             self.text.insert(tkinter.END, message + "\n")
             self.text.config(state=tkinter.DISABLED)
 
+
 def Main():
+    q = None
     if not tkinter:
         send_message('"tkinter python module wasn\'t found. Running in headless ' +
                      'mode. Please consider installing tkinter."')
-        read_thread_func(None)
-        sys.exit(0)
-    q = queue.Queue()
-    main_window = NativeMessagingWindow(q)
-    main_window.master.title('Native Messaging Example')
+        #read_thread_func(None)
+        #sys.exit(0)
 
-    inthread = threading.Thread(target=read_thread_func, args=(q,))
-    inthread.daemon = True
-    inthread.start()
+    else:
+        q = queue.Queue()
+        main_window = NativeMessagingWindow(q)
+        main_window.master.title('Native Messaging Example')
 
     outthread = threading.Thread(target=out_thread_func, args=(fromjqueue, q,))
     outthread.daemon = True
     outthread.start()
 
-    main_window.mainloop()
-    sys.exit(0)
+    inthread = threading.Thread(target=read_thread_func, args=(q,))
+    if tkinter:
+        inthread.daemon = True
+    inthread.start()
+
+    if tkinter:
+        main_window.mainloop()
+
 
 if __name__ == '__main__':
     Main()

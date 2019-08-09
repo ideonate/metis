@@ -32,9 +32,15 @@ function connect() {
         sendObject({cmd: 'start',
             virtualenv: document.getElementById('virtualenv').value,
             homedir: document.getElementById('homedir').value});
+
+        status = 2;
+        updateUiState();
     }
     else {
         // Stop
+        sendObject({cmd: 'stop'});
+        status = 4;
+        updateUiState();
     }
 }
 

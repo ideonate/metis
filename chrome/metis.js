@@ -47,6 +47,9 @@ function onNativeMessage(msg) {
 
 		if (msg.status) {
 			serverobj.status = msg.status;
+			if (serverobj.status == 4) {
+				// Stopped so remove this from maps TODO
+			}
 		}
 		if (msg.server_info) {
 			/* This is the first time we know server is started */
@@ -166,7 +169,10 @@ async function start() {
 							homedir: request.homedir});
 					}
 					else if (request.status == 3 && request.cmd == 'stop') {
-
+						sendNativeMessage(serverobj, {cmd: request.cmd,
+							server_info: serverobj.server_info,
+							virtualenv: serverobj.virtualenv,
+							homedir: serverobj.homedir});
 					}
 				}
 			}
