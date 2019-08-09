@@ -35,17 +35,19 @@ def send_message(message):
     sys.stdout.buffer.write(bytes(message,"utf-8"))
     sys.stdout.buffer.flush()
 
-jpipe = None
-
 
 def jpipe_run(req, fromjqueue, q):
     # 0 = loading, 1 = stopped, 2 = launching server, 3 = running, 4 = stopping
     uid = req['uid']
-    status = 2
+    jpipe = None
+
     if q:
         q.put('Starting jpipe in thread for uid {}'.format(uid))
+
     try:
-        jpipe = subprocess.Popen(['./run_jupyter.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, text=True, shell=True)
+        virtualenv = req['virtualenv']
+        homedir = req['homedir']
+        jpipe = subprocess.Popen(['./run_jupyter.sh', virtualenv, homedir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, text=True, shell=False)
 
     except Exception as e:
         if q:
@@ -58,17 +60,13 @@ def jpipe_run(req, fromjqueue, q):
     if q:
         q.put('Started jpipe in thread: pyversion '+sys.version)
 
-    # Pretend we've got a nativeport back already
-
-
     while jpipe.poll() is None:
 
         try:
-            #outs, errs = jpipe.communicate(None, timeout=1)
+            # outs, errs = jpipe.communicate(None, timeout=1)
             outs = jpipe.stdout.readline()
 
             if q:
-                q.put('Result')
                 q.put('outs: ' + outs) #.decode('utf-8'))
                 #q.put('errs: ' + errs) #.decode('utf-8'))
 
@@ -76,6 +74,11 @@ def jpipe_run(req, fromjqueue, q):
 
                 if 'server_info' in d:
                     fromjqueue.put({'uid': uid, 'status': 3, 'server_info': d['server_info']})
+
+        except json.JSONDecodeError as jde:
+            if q:
+                q.put(str(jde))
+            fromjqueue.put({'uid': uid, 'status': 4, 'msg': 'JSON decode error: '+str(jde)})
 
         except Exception as e:
             if q:
@@ -87,11 +90,12 @@ def jpipe_run(req, fromjqueue, q):
         q.put('Finished jpipe')
     fromjqueue.put({'uid': uid, 'status': 1, 'msg': 'STOPPED jpipe'})
 
+
 def start_jpipe(req, fromjqueue, q):
     thread = threading.Thread(target=jpipe_run, args=(req, fromjqueue, q,))
     thread.daemon = True
     thread.start()
-    #jpipe_run(q)
+
 
 # Thread that reads messages from the webapp.
 def read_thread_func(q):
@@ -123,7 +127,8 @@ def read_thread_func(q):
             tojqueue.put(req)
         else:
             uidtojqueues[uid] = queue.Queue()
-            start_jpipe(req, fromjqueue, q)
+            if req['cmd'] == 'start':
+                start_jpipe(req, fromjqueue, q)
 
             if q:
                 q.put('Starting pipe')
@@ -178,6 +183,7 @@ if tkinter:
             self.text.config(state=tkinter.NORMAL)
             self.text.insert(tkinter.END, message + "\n")
             self.text.config(state=tkinter.DISABLED)
+
 def Main():
     if not tkinter:
         send_message('"tkinter python module wasn\'t found. Running in headless ' +

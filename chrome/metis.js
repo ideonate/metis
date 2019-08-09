@@ -112,15 +112,14 @@ async function start() {
 
 				if (request.tabid) {
 					tabid = request.tabid;
-					if (tabmap.has(request.tabid)) {
-						uid = tabmap.get(request.tabid);
-					}
-					else if (request.taburl) {
+					if (request.taburl) {
 						let taburl = new URL(request.taburl);
 						let hostnameport = taburl.hostname + ':' + taburl.port;
 						if (jservermap.has(hostnameport)) {
 							uid = jservermap.get(hostnameport);
 						}
+					} else if (tabmap.has(request.tabid)) {
+						uid = tabmap.get(request.tabid);
 					}
 				}
 
@@ -157,8 +156,17 @@ async function start() {
 				// Start or stop server?
 				if (request.cmd) {
 					serverobj.status = (request.status + 1) % 5;
-					if ((request.status == 1 && request.cmd == 'start') || (request.status == 3 && request.cmd == 'stop')) {
-						sendNativeMessage(serverobj, {cmd: request.cmd});
+					if (request.status == 1 && request.cmd == 'start') {
+
+						serverobj.virtualenv = request.virtualenv;
+						serverobj.homedir = request.homedir;
+
+						sendNativeMessage(serverobj, {cmd: request.cmd,
+							virtualenv: request.virtualenv,
+							homedir: request.homedir});
+					}
+					else if (request.status == 3 && request.cmd == 'stop') {
+
 					}
 				}
 			}

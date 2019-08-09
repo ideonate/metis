@@ -7,6 +7,20 @@
 <body>
 <button id='connect-button' style="display: none;">Launch</button>
 
+<input type="text" id="virtualenv" name="virtualenv" list="virtualenvList"/>
+<datalist id="virtualenvList">
+    <option value="">None</option>
+    <option value="jupyterdev-venv">jupyterdev-venv</option>
+    <option value="nbconvert-dev">nbconvert-dev</option>
+</datalist>
+
+<input type="text" id="homedir" name="homedir" list="homedirList"/>
+<datalist id="homedirList">
+    <option value="~">~</option>
+    <option value="/home/dan/Dev">/home/dan/Dev</option>
+    <option value="/home/dan/Dev/innotater">/home/dan/Dev/innotater</option>
+</datalist>
+
 <div id="status">Querying for tab...</div>
 
 <div id='info'></div>

@@ -18,10 +18,24 @@ function updateUiState() {
     document.getElementById('connect-button').disabled = buttondisabled[status];
     document.getElementById('connect-button').innerHTML = buttontext[status];
     document.getElementById('connect-button').style.display = 'block';
+
+    document.getElementById('virtualenv').style.display = status == 1 ? 'block' : 'none';
+    document.getElementById('homedir').style.display = status == 1 ? 'block' : 'none';
 }
 
 function connect() {
-    sendObject({cmd: status < 2 ? 'start' : 'stop'});
+    console.log('Connect button clicked, status '+status);
+    if (status < 2) {
+        console.log(document.getElementById('virtualenv').value);
+        console.log(document.getElementById('homedir').value);
+
+        sendObject({cmd: 'start',
+            virtualenv: document.getElementById('virtualenv').value,
+            homedir: document.getElementById('homedir').value});
+    }
+    else {
+        // Stop
+    }
 }
 
 function messageResponder(response) {
