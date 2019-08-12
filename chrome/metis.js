@@ -19,11 +19,11 @@ function appendMessage(text) {
 function sendNativeMessage(serverobj, msg) {
 	msg.uid = serverobj.uid;
 	nativeport.postMessage(msg);
-	appendMessage("Sent message: <b>" + JSON.stringify(msg) + "</b>");
+
+	serverobj.locallogs.push("Sent message: <b>" + JSON.stringify(msg) + "</b>");
 
 	if (msg.cmd == 'start') {
 		serverobj.status = 2;
-		serverobj.locallogs.push('Sent native start command');
 		sendForPopup(serverobj);
 	}
 }
@@ -35,6 +35,7 @@ function sendForPopup(serverobj) {
 		server_info: serverobj.server_info,
 		status: serverobj.status,
 		locallogs: serverobj.locallogs,
+		stderrlogs: serverobj.stderrlogs,
 		globallogs: globallogs
 	});
 }
@@ -42,8 +43,6 @@ function sendForPopup(serverobj) {
 function onNativeMessage(msg) {
 	if (msg.uid) {
 		let serverobj = servermap.get(msg.uid);
-
-		serverobj.locallogs.push('Received Msg: ' + JSON.stringify(msg))
 
 		if (msg.status) {
 			serverobj.status = msg.status;
@@ -66,6 +65,12 @@ function onNativeMessage(msg) {
 				}
 				chrome.tabs.update(serverobj.requesting_tabid, {url: url})
 			}
+		}
+		if (msg.stderrmsg) {
+			serverobj.stderrlogs.push(msg.stderrmsg);
+		}
+		else {
+			serverobj.locallogs.push('Received Msg: ' + JSON.stringify(msg))
 		}
 		sendForPopup(serverobj);
 	}
@@ -135,6 +140,7 @@ async function start() {
 					serverobj.port = 0;
 					serverobj.server_info = {};
 					serverobj.locallogs = ['Starting with uid: '+uid];
+					serverobj.stderrlogs = [];
 					serverobj.status = 1; // Stopped
 					serverobj.requesting_tabid = tabid;
 					servermap.set(uid, serverobj);
@@ -153,6 +159,7 @@ async function start() {
 					server_info: serverobj.server_info,
 					status: serverobj.status,
 					locallogs: serverobj.locallogs,
+					stderrlogs: serverobj.stderrlogs,
 					globallogs: globallogs
 				});
 

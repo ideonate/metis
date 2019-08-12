@@ -67,7 +67,7 @@ def jpipe_run(req, fromjqueue, tojqueue, q): # req['cmd']=='start'
         while jpipe.poll() is None:
             l = jpipe.stderr.readline()
             if l != '':
-                fromjqueue.put(json.dumps({'uid':uid, 'errmsg': l}))
+                fromjqueue.put({'uid':uid, 'stderrmsg': l})
 
     def stdout_stream(jpipe, fromjqueue, q):
         while jpipe.poll() is None:

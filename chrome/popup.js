@@ -61,6 +61,12 @@ function messageResponder(response) {
         locallogs.innerHTML += "<p>" + response.locallogs[i] + "</p>";
     }
 
+    let stderrlogs = document.getElementById('stderrlogs');
+    stderrlogs.innerHTML = '';
+    for (var i=0 ; i<response.stderrlogs.length ; ++i) {
+        stderrlogs.innerHTML += "<p>" + response.stderrlogs[i] + "</p>";
+    }
+
     let globallogs = document.getElementById('globallogs');
     globallogs.innerHTML = '';
     for (var i=0 ; i<response.globallogs.length ; ++i) {
