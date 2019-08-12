@@ -3,29 +3,44 @@
 <html>
 <head>
     <script src='./popup.js'></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
 </head>
+
 <body>
-<button id='connect-button' style="display: none;">Launch</button>
 
-<input type="text" id="virtualenv" name="virtualenv" list="virtualenvList"/>
-<datalist id="virtualenvList">
-    <option value="">None</option>
-    <option value="jupyterdev-venv">jupyterdev-venv</option>
-    <option value="nbconvert-dev">nbconvert-dev</option>
-</datalist>
+<div id="controlpanel">
 
-<input type="text" id="homedir" name="homedir" list="homedirList"/>
-<datalist id="homedirList">
-    <option value="~">~</option>
-    <option value="/Users/dan/Dev">/home/dan/Dev</option>
-    <option value="/Users/dan/Dev/innotater">/home/dan/Dev/innotater</option>
-</datalist>
+    <div>
+        <label for="virtualenv">Virtualenv</label>
+        <input type="text" id="virtualenv" name="virtualenv" class="prelaunchonly" list="virtualenvList"/>
+        <datalist id="virtualenvList">
+            <option value="">None</option>
+            <option value="jupyterdev-venv">jupyterdev-venv</option>
+            <option value="nbconvert-dev">nbconvert-dev</option>
+        </datalist>
+    </div>
+
+    <div>
+        <label for="homedir">Launch Folder</label>
+        <input type="text" id="homedir" name="homedir" class="prelaunchonly" list="homedirList"/>
+        <datalist id="homedirList">
+            <option value="~">~</option>
+            <option value="/Users/dan/Dev">/home/dan/Dev</option>
+            <option value="/Users/dan/Dev/innotater">/home/dan/Dev/innotater</option>
+        </datalist>
+    </div>
+
+    <div>
+        <button id='connect-button' style="display: none;">Launch</button>
+    </div>
+
+</div>
 
 <div id="status">Querying for tab...</div>
 
 <div id='info'></div>
 
-<div id='stderrlogs' style="background-color: lightgrey"></div>
+<div id='stderrlogs' class="logbox" style="background-color: lightgrey"></div>
 
 <div id='locallogs' style="background-color: lightyellow"></div>
 

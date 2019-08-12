@@ -32,6 +32,8 @@ function sendForPopup(serverobj) {
 	chrome.runtime.sendMessage({uid: serverobj.uid,
 		hostname: serverobj.hostname,
 		port: serverobj.port,
+		virtualenv: serverobj.virtualenv,
+		homedir: serverobj.homedir,
 		server_info: serverobj.server_info,
 		status: serverobj.status,
 		locallogs: serverobj.locallogs,

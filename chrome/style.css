@@ -1,0 +1,21 @@
+
+body > div {
+    padding: 6px;
+}
+
+div#controlpanel {
+    background-color: antiquewhite;
+}
+
+div#controlpanel > div {
+    margin: 6px;
+}
+
+#status {
+    font-weight: bold;
+}
+
+.logbox p {
+    font-family: "Courier New", Courier, monospace;
+    margin: 2px;
+}

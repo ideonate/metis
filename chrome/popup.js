@@ -19,16 +19,19 @@ function updateUiState() {
     document.getElementById('connect-button').innerHTML = buttontext[status];
     document.getElementById('connect-button').style.display = 'block';
 
-    document.getElementById('virtualenv').style.display = status == 1 ? 'block' : 'none';
-    document.getElementById('homedir').style.display = status == 1 ? 'block' : 'none';
+    // document.getElementById('virtualenv').style.display = status == 1 ? 'block' : 'none';
+    // document.getElementById('homedir').style.display = status == 1 ? 'block' : 'none';
+
+    var prelaunchelts = document.getElementsByClassName("prelaunchonly");
+    for (var i=0 ; i < prelaunchelts.length ; ++i) {
+        prelaunchelts[i].disabled = status != 1;
+    }
+
 }
 
 function connect() {
     console.log('Connect button clicked, status '+status);
     if (status < 2) {
-        console.log(document.getElementById('virtualenv').value);
-        console.log(document.getElementById('homedir').value);
-
         sendObject({cmd: 'start',
             virtualenv: document.getElementById('virtualenv').value,
             homedir: document.getElementById('homedir').value});
@@ -51,9 +54,16 @@ function messageResponder(response) {
     hostname = response.hostname;
     status = response.status;
 
+    let virtualenv = response.virtualenv || "";
+    let homedir = response.homedir || "";
+
+
     document.getElementById('status').innerHTML = statustext[status];
 
-    document.getElementById('info').innerHTML = '<p>UID: '+uid+'</p><p>Hostname: '+hostname+'</p><p>Port: '+port+'</p><p>Status: '+status+'</p>';
+    document.getElementById('info').innerHTML = '<p>Hostname: '+hostname+'</p><p>Port: '+port+'</p>';
+
+    document.getElementById('virtualenv').value = virtualenv;
+    document.getElementById('homedir').value = homedir;
 
     let locallogs = document.getElementById('locallogs');
     locallogs.innerHTML = '';
