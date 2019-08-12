@@ -1,4 +1,3 @@
-from notebook.notebookapp import NotebookApp
 import json
 import sys
 import threading
@@ -27,7 +26,17 @@ def read_stdin(stdoutlock, app):
 kwargs = {}
 argv = ['--no-browser']
 
-app = NotebookApp.instance(**kwargs)
+jupyterlab = False
+if len(sys.argv) > 1:
+    jupyterlab = sys.argv[1] == 'lab'
+
+if jupyterlab:
+    from jupyterlab.labapp import LabApp
+    app = LabApp.instance(**kwargs)
+else:
+    from notebook.notebookapp import NotebookApp
+    app = NotebookApp.instance(**kwargs)
+
 app.initialize(argv)
 
 with stdoutlock:

@@ -20,7 +20,7 @@ function sendNativeMessage(serverobj, msg) {
 	msg.uid = serverobj.uid;
 	nativeport.postMessage(msg);
 
-	serverobj.locallogs.push("Sent message: <b>" + JSON.stringify(msg) + "</b>");
+	serverobj.locallogs.push("Sent message: " + JSON.stringify(msg));
 
 	if (msg.cmd == 'start') {
 		serverobj.status = 2;
@@ -34,6 +34,7 @@ function sendForPopup(serverobj) {
 		port: serverobj.port,
 		virtualenv: serverobj.virtualenv,
 		homedir: serverobj.homedir,
+		jupyterlab: serverobj.jupyterlab,
 		server_info: serverobj.server_info,
 		status: serverobj.status,
 		locallogs: serverobj.locallogs,
@@ -62,6 +63,9 @@ function onNativeMessage(msg) {
 
 			if (serverobj.requesting_tabid) {
 				let url = msg.server_info.url;
+				/*if (serverobj.jupyterlab) {
+					url += 'lab/';
+				}*/
 				if (msg.server_info.token) {
 					url += '?token='+msg.server_info.token;
 				}
@@ -112,10 +116,7 @@ async function start() {
 
 	chrome.runtime.onMessage.addListener(
 		function(request, sender, sendResponse) {
-			console.log(sender.tab ?
-				"from a content script:" + sender.tab.url :
-				"from the extension");
-			if (!sender.tab) {
+			if (!sender.tab) { // from the extension (not a content script)
 				let tabid = null;
 				let serverobj = {};
 				let uid = request.uid;
@@ -172,16 +173,19 @@ async function start() {
 
 						serverobj.virtualenv = request.virtualenv;
 						serverobj.homedir = request.homedir;
+						serverobj.jupyterlab = request.jupyterlab;
 
 						sendNativeMessage(serverobj, {cmd: request.cmd,
-							virtualenv: request.virtualenv,
-							homedir: request.homedir});
+							virtualenv: serverobj.virtualenv,
+							homedir: serverobj.homedir,
+							jupyterlab: serverobj.jupyterlab});
 					}
 					else if (request.status == 3 && request.cmd == 'stop') {
 						sendNativeMessage(serverobj, {cmd: request.cmd,
 							server_info: serverobj.server_info,
 							virtualenv: serverobj.virtualenv,
-							homedir: serverobj.homedir});
+							homedir: serverobj.homedir,
+							jupyterlab: serverobj.jupyterlab});
 					}
 				}
 			}

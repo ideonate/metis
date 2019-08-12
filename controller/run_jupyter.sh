@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Expect $1 is a virtualenvwrapper name
-# Except $2 is the homedir
+# Expect $2 is the homedir
+# Expect $3 is lab or notebook
 
 source ~/.bash_profile
 
@@ -23,4 +24,4 @@ fi
 rji="${rji}/run_jupyter_instance.py"
 
 #jupyter notebook
-python3 "$rji"
+python3 "$rji" "$3"

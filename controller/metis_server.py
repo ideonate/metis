@@ -49,7 +49,8 @@ def jpipe_run(req, fromjqueue, tojqueue, q): # req['cmd']=='start'
     try:
         virtualenv = req['virtualenv']
         homedir = req['homedir']
-        jpipe = subprocess.Popen(['./run_jupyter.sh', virtualenv, homedir], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        jupyterlab = req['jupyterlab'] and "lab" or "notebook"
+        jpipe = subprocess.Popen(['./run_jupyter.sh', virtualenv, homedir, jupyterlab], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  stdin=subprocess.PIPE, bufsize=1, text=True, shell=False)
 
     except Exception as e:

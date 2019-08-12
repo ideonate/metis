@@ -30,11 +30,11 @@ function updateUiState() {
 }
 
 function connect() {
-    console.log('Connect button clicked, status '+status);
     if (status < 2) {
         sendObject({cmd: 'start',
             virtualenv: document.getElementById('virtualenv').value,
-            homedir: document.getElementById('homedir').value});
+            homedir: document.getElementById('homedir').value,
+            jupyterlab: document.getElementById('jupyterlab').checked});
 
         status = 2;
         updateUiState();
@@ -48,7 +48,6 @@ function connect() {
 }
 
 function messageResponder(response) {
-    console.log(response);
     uid = response.uid;
     port = response.port;
     hostname = response.hostname;
@@ -56,7 +55,10 @@ function messageResponder(response) {
 
     let virtualenv = response.virtualenv || "";
     let homedir = response.homedir || "";
-
+    let jupyterlab = true;
+    if (response.hasOwnProperty('jupyterlab')) {
+        jupyterlab = response.jupyterlab;
+    }
 
     document.getElementById('status').innerHTML = statustext[status];
 
@@ -64,6 +66,7 @@ function messageResponder(response) {
 
     document.getElementById('virtualenv').value = virtualenv;
     document.getElementById('homedir').value = homedir;
+    document.getElementById('jupyterlab').checked = jupyterlab;
 
     let locallogs = document.getElementById('locallogs');
     locallogs.innerHTML = '';
@@ -87,19 +90,15 @@ function messageResponder(response) {
 };
 
 function sendObject(o) {
-    console.log('Sending object');
-
     o.uid = uid;
     o.status = status;
     o.hostname = hostname;
     o.post = port;
 
-    console.log(o);
     chrome.runtime.sendMessage(o, messageResponder);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("DOM loaded popup");
 
     document.getElementById('connect-button').addEventListener(
         'click', connect);
