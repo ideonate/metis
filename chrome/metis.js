@@ -146,6 +146,11 @@ async function start() {
 					serverobj.stderrlogs = [];
 					serverobj.status = 1; // Stopped
 					serverobj.requesting_tabid = tabid;
+
+					serverobj.virtualenv = '';
+					serverobj.homedir = '';
+					serverobj.jupyterlab = true;
+
 					servermap.set(uid, serverobj);
 
 					if (request.tabid) {
@@ -155,16 +160,6 @@ async function start() {
 				else {
 					serverobj = servermap.get(uid);
 				}
-
-				sendResponse({uid: uid,
-					hostname: serverobj.hostname,
-					port: serverobj.port,
-					server_info: serverobj.server_info,
-					status: serverobj.status,
-					locallogs: serverobj.locallogs,
-					stderrlogs: serverobj.stderrlogs,
-					globallogs: globallogs
-				});
 
 				// Start or stop server?
 				if (request.cmd) {
@@ -188,6 +183,19 @@ async function start() {
 							jupyterlab: serverobj.jupyterlab});
 					}
 				}
+
+				sendResponse({uid: uid,
+					hostname: serverobj.hostname,
+					port: serverobj.port,
+					server_info: serverobj.server_info,
+					status: serverobj.status,
+					virtualenv: serverobj.virtualenv,
+					homedir: serverobj.homedir,
+					jupyterlab: serverobj.jupyterlab,
+					locallogs: serverobj.locallogs,
+					stderrlogs: serverobj.stderrlogs,
+					globallogs: globallogs
+				});
 			}
 
 		});

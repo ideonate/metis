@@ -109,10 +109,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     );
 
-    chrome.tabs.query({active: true}, function(tabs){
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
 
-        if (tabs.length != 1) {
-            alert("Multiple active tabs or none");
+        if (tabs.length > 1) {
+            alert("Multiple active tabs");
             console.log(tabs);
         }
         else {
