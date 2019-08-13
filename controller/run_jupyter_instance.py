@@ -1,6 +1,7 @@
 import json
-import sys
+import sys, os
 import threading
+import logging
 
 stdoutlock = threading.Lock()
 
@@ -21,6 +22,9 @@ def read_stdin(stdoutlock, app):
                 sys.stdout.flush()
 
 
+# Set PYTHONPATH so kernel_launcher can run in the right env
+os.environ['PYTHONPATH'] = os.pathsep.join(sys.path)
+
 # Init the Jupyter app
 
 kwargs = {}
@@ -37,9 +41,15 @@ else:
     from notebook.notebookapp import NotebookApp
     app = NotebookApp.instance(**kwargs)
 
+app.log_level = logging.DEBUG
+
 app.initialize(argv)
 
 with stdoutlock:
+    print(json.dumps({'sys.path': sys.path}))
+    print(json.dumps({'sys.executable': sys.executable}))
+    print(json.dumps({'os.environ': dict(os.environ)}))
+
     print(json.dumps({'server_info': app.server_info()}))
     sys.stdout.flush()
 

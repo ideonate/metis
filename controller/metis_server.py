@@ -79,6 +79,8 @@ def jpipe_run(req, fromjqueue, tojqueue, q): # req['cmd']=='start'
 
                     if 'server_info' in d:
                         fromjqueue.put({'uid': uid, 'status': 3, 'server_info': d['server_info']})
+                    else:
+                        fromjqueue.put({'uid': uid, 'stdout': d})
                 except json.JSONDecodeError as jde:
                     if q:
                         q.put(str(jde))
@@ -110,6 +112,8 @@ def jpipe_run(req, fromjqueue, tojqueue, q): # req['cmd']=='start'
     if q:
         q.put('Finished jpipe')
     fromjqueue.put({'uid': uid, 'status': 1, 'msg': 'STOPPED jpipe'})
+
+    del uidtojqueues[uid]
 
 
 def start_jpipe(req, fromjqueue, tojqueue, q):

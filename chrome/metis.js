@@ -70,6 +70,7 @@ function onNativeMessage(msg) {
 					url += '?token='+msg.server_info.token;
 				}
 				chrome.tabs.update(serverobj.requesting_tabid, {url: url})
+				tabmap.delete(serverobj.requesting_tabid); // Let tab stand on its own feet now - identified by hostname:port only
 			}
 		}
 		if (msg.stderrmsg) {
@@ -108,6 +109,22 @@ function tabUpdated(tabId, changeInfo, tab) {
 	console.log("tabUpdated: "+tabId);
 }
 
+function blank_serverobj(serverobj, uid) {
+	serverobj.uid = uid;
+	serverobj.hostname = '';
+	serverobj.port = 0;
+	serverobj.server_info = {};
+	serverobj.locallogs = ['Starting with uid: '+uid];
+	serverobj.stderrlogs = [];
+	serverobj.status = 1; // Stopped
+
+	serverobj.virtualenv = '';
+	serverobj.homedir = '';
+	serverobj.jupyterlab = true;
+
+	return serverobj;
+}
+
 async function start() {
 
 	chrome.tabs.onUpdated.addListener(tabUpdated);
@@ -138,24 +155,14 @@ async function start() {
 
 				if (!uid) {
 					uid = uidcounter++;
-					serverobj.uid = uid;
-					serverobj.hostname = '';
-					serverobj.port = 0;
-					serverobj.server_info = {};
-					serverobj.locallogs = ['Starting with uid: '+uid];
-					serverobj.stderrlogs = [];
-					serverobj.status = 1; // Stopped
-					serverobj.requesting_tabid = tabid;
 
-					serverobj.virtualenv = '';
-					serverobj.homedir = '';
-					serverobj.jupyterlab = true;
+					serverobj = blank_serverobj({}, uid);
+
+					serverobj.requesting_tabid = tabid;
 
 					servermap.set(uid, serverobj);
 
-					if (request.tabid) {
-						tabmap.set(request.tabid, uid);
-					}
+					tabmap.set(tabid, uid);
 				}
 				else {
 					serverobj = servermap.get(uid);
@@ -165,6 +172,18 @@ async function start() {
 				if (request.cmd) {
 					serverobj.status = (request.status + 1) % 5;
 					if (request.status == 1 && request.cmd == 'start') {
+
+						// If this uid was running before, we're going to get a new hostname:port, so remove from map cache
+						if (serverobj.hostname != '' && serverobj.port != 0) {
+							let hostnameport = serverobj.hostname + ':' + serverobj.port;
+							if (jservermap.has(hostnameport)) {
+								jservermap.delete(hostnameport);
+							}
+							serverobj.requesting_tabid = tabid; // Come back to this tab
+							tabmap.set(tabid, uid);
+							
+							serverobj = blank_serverobj(serverobj, uid); // Reset since original must have been stopped
+						}
 
 						serverobj.virtualenv = request.virtualenv;
 						serverobj.homedir = request.homedir;
