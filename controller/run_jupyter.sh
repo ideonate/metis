@@ -6,10 +6,6 @@
 
 source ~/.bash_profile
 
-#workon jupyterdev-venv
-#python3 ./run_jupyter_instance.py
-#exit
-
 if [ "$1" != "" ]; then
   workon "$1"
 fi

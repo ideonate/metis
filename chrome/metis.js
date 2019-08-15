@@ -101,15 +101,7 @@ function connect() {
 	}
 }
 
-function popupCallback() {
-	console.log("popupCallback");
-}
-
-function tabUpdated(tabId, changeInfo, tab) {
-	console.log("tabUpdated: "+tabId);
-}
-
-function blank_serverobj(serverobj, uid) {
+function blank_serverobj(serverobj, uid, defaults) {
 	serverobj.uid = uid;
 	serverobj.hostname = '';
 	serverobj.port = 0;
@@ -122,12 +114,20 @@ function blank_serverobj(serverobj, uid) {
 	serverobj.homedir = '';
 	serverobj.jupyterlab = true;
 
+	if (defaults !== undefined) {
+		for (let property in defaults) {
+			if (defaults.hasOwnProperty(property)) {
+				serverobj[property] = defaults[property];
+			}
+		}
+	}
+
 	return serverobj;
 }
 
 async function start() {
 
-	chrome.tabs.onUpdated.addListener(tabUpdated);
+	//chrome.storage.local.clear(); // For testing
 
 	connect();
 
@@ -156,7 +156,7 @@ async function start() {
 				if (!uid) {
 					uid = uidcounter++;
 
-					serverobj = blank_serverobj({}, uid);
+					serverobj = blank_serverobj({}, uid, {virtualenv: request.virtualenv, homedir: request.homedir, jupyterlab: request.jupyterlab});
 
 					serverobj.requesting_tabid = tabid;
 
@@ -181,7 +181,7 @@ async function start() {
 							}
 							serverobj.requesting_tabid = tabid; // Come back to this tab
 							tabmap.set(tabid, uid);
-							
+
 							serverobj = blank_serverobj(serverobj, uid); // Reset since original must have been stopped
 						}
 
@@ -219,7 +219,7 @@ async function start() {
 
 		});
 
-	chrome.browserAction.setPopup({'popup':'main.html'}, popupCallback);
+	chrome.browserAction.setPopup({'popup':'main.html'});
 }
 
 start();

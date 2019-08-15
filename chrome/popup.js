@@ -1,5 +1,7 @@
 "use strict";
 
+const storagekey = 'metisoptions';
+
 let port = 0;
 
 let hostname = '';
@@ -29,15 +31,58 @@ function updateUiState() {
 
 }
 
+function saveLocalOptions(virtualenv, homedir, jupyterlab) {
+    chrome.storage.local.get([storagekey], function(data) {
+
+        if (data === undefined || !data.hasOwnProperty(storagekey)) {
+            data = {[storagekey]: {}};
+        }
+
+        function saveListRecent(subdata, key, recentValue){
+            if (!subdata.hasOwnProperty(key+'List')) {
+                subdata[key] = '';
+                subdata[key+'List'] = [];
+            }
+
+            let list = subdata[key+'List'];
+            let found = false;
+            for (let i=0 ; i < list.length ; ++i) {
+                if (list[i] == recentValue) {
+                    found = true;
+                }
+            }
+            if (!found) {
+                list.push(recentValue);
+            }
+
+            subdata[key] = recentValue;
+        }
+
+        if (data.hasOwnProperty(storagekey)) {
+            saveListRecent(data[storagekey], 'virtualenv', virtualenv);
+            saveListRecent(data[storagekey], 'homedir', homedir);
+            data[storagekey]['jupyterlab'] = jupyterlab;
+        }
+
+        chrome.storage.local.set(data);
+    });
+}
+
 function connect() {
     if (status < 2) {
+        let virtualenv = document.getElementById('virtualenv').value;
+        let homedir = document.getElementById('homedir').value;
+        let jupyterlab = document.getElementById('jupyterlab').checked;
+
         sendObject({cmd: 'start',
-            virtualenv: document.getElementById('virtualenv').value,
-            homedir: document.getElementById('homedir').value,
-            jupyterlab: document.getElementById('jupyterlab').checked});
+            virtualenv: virtualenv,
+            homedir: homedir,
+            jupyterlab: jupyterlab});
 
         status = 2;
         updateUiState();
+
+        saveLocalOptions(virtualenv, homedir, jupyterlab);
     }
     else {
         // Stop
@@ -53,20 +98,21 @@ function messageResponder(response) {
     hostname = response.hostname;
     status = response.status;
 
-    let virtualenv = response.virtualenv || "";
-    let homedir = response.homedir || "";
-    let jupyterlab = true;
+    if (response.hasOwnProperty('virtualenv')) {
+        document.getElementById('virtualenv').value = response.virtualenv;
+    }
+    if (response.hasOwnProperty('homedir')) {
+        document.getElementById('homedir').value = response.homedir;
+    }
     if (response.hasOwnProperty('jupyterlab')) {
-        jupyterlab = response.jupyterlab;
+        document.getElementById('jupyterlab').checked = response.jupyterlab;
     }
 
     document.getElementById('status').innerHTML = statustext[status];
 
     document.getElementById('info').innerHTML = '<p>Hostname: '+hostname+'</p><p>Port: '+port+'</p>';
 
-    document.getElementById('virtualenv').value = virtualenv;
-    document.getElementById('homedir').value = homedir;
-    document.getElementById('jupyterlab').checked = jupyterlab;
+
 
     let locallogs = document.getElementById('locallogs');
     locallogs.innerHTML = '';
@@ -100,6 +146,47 @@ function sendObject(o) {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Load saved options
+
+    chrome.storage.local.get([storagekey], function(data) {
+
+        function extractListDefault(subdata, key, defaultValue){
+            let list = [defaultValue];
+            if (subdata.hasOwnProperty(key+'List')) {
+                list = subdata[key + 'List'];
+            }
+
+            let elt = document.getElementById(key+'List');
+
+            for (let i=0 ; i < list.length ; ++i) {
+                let option = document.createElement('option');
+                option.value = list[i];
+                elt.appendChild(option);
+            }
+
+            if (subdata.hasOwnProperty(key)) {
+                let textelt = document.getElementById(key);
+                textelt.value = subdata[key];
+            }
+        }
+
+        if (data === undefined) {
+            data = {};
+        }
+        if (!data.hasOwnProperty(storagekey)) {
+            data[storagekey] = {};
+        }
+
+        extractListDefault(data[storagekey], 'virtualenv', '');
+        extractListDefault(data[storagekey], 'homedir', '~');
+
+        if (data[storagekey].hasOwnProperty('jupyterlab')) {
+            document.getElementById('jupyterlab').checked = data[storagekey]['jupyterlab'];
+        }
+    });
+
+    // Tie up Launch/Stop button and listener to receive Jupyter data
+
     document.getElementById('connect-button').addEventListener(
         'click', connect);
 
@@ -109,11 +196,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     );
 
+
+    // Init query to metis.js based on current tab, to be received by above handler
+
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
 
         if (tabs.length > 1) {
             alert("Multiple active tabs");
-            console.log(tabs);
         }
         else {
             sendObject({tabid: tabs[0].id, taburl: tabs[0].url});

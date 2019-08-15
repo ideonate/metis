@@ -12,21 +12,15 @@
 
     <div>
         <label for="virtualenv">Virtualenv</label>
-        <input type="text" id="virtualenv" name="virtualenv" class="prelaunchonly" list="virtualenvList"/>
+        <input type="text" id="virtualenv" name="virtualenv" class="prelaunchonly" list="virtualenvList" autocomplete="off" />
         <datalist id="virtualenvList">
-            <option value="">None</option>
-            <option value="jupyterdev-venv">jupyterdev-venv</option>
-            <option value="nbconvert-dev">nbconvert-dev</option>
         </datalist>
     </div>
 
     <div>
         <label for="homedir">Launch Folder</label>
-        <input type="text" id="homedir" name="homedir" class="prelaunchonly" list="homedirList"/>
+        <input type="text" id="homedir" name="homedir" class="prelaunchonly" list="homedirList" autocomplete="off" />
         <datalist id="homedirList">
-            <option value="~">~</option>
-            <option value="/Users/dan/Dev">/home/dan/Dev</option>
-            <option value="/Users/dan/Dev/innotater">/home/dan/Dev/innotater</option>
         </datalist>
     </div>
 
