@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/local/bin/python3
 
 # To run Chrome showing logs
 # /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --enable-logging --v=1
@@ -8,13 +8,14 @@ import sys
 import threading
 import queue
 import json
-try:
-    import tkinter
-    from tkinter import messagebox
-except ImportError:
-    tkinter = None
 
-# tkinter = None
+#try:
+#    import tkinter
+#    from tkinter import messagebox
+#except ImportError:
+#    tkinter = None
+
+tkinter = None
 
 import subprocess
 
@@ -215,13 +216,7 @@ if tkinter:
 
 def Main():
     q = None
-    if not tkinter:
-        send_message('"tkinter python module wasn\'t found. Running in headless ' +
-                     'mode. Please consider installing tkinter."')
-        #read_thread_func(None)
-        #sys.exit(0)
-
-    else:
+    if tkinter:
         q = queue.Queue()
         main_window = NativeMessagingWindow(q)
         main_window.master.title('Native Messaging Example')
