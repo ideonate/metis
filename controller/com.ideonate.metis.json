@@ -1,7 +1,7 @@
 {
   "name": "com.ideonate.metis",
   "description": "Metis",
-  "path": "/Users/dan/Dev/metis/controller/metis_server.py",
+  "path": "HOST_PATH",
   "type": "stdio",
   "allowed_origins": [
     "chrome-extension://oamckomkjioijnlgchlbbcldcamccmme/"

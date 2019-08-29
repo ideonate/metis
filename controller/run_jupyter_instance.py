@@ -1,7 +1,7 @@
 import json
 import sys, os
 import threading
-import logging
+
 
 stdoutlock = threading.Lock()
 
@@ -41,7 +41,8 @@ else:
     from notebook.notebookapp import NotebookApp
     app = NotebookApp.instance(**kwargs)
 
-app.log_level = logging.DEBUG
+# import logging
+# app.log_level = logging.DEBUG
 
 app.initialize(argv)
 
